@@ -48,8 +48,6 @@ class Log {
     public $logTime;
 
     public function __construct() {
-        parent::__construct();
-
         $this->logTime = new \DateTime();
     }
 
