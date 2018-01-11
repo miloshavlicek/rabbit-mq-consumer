@@ -10,7 +10,10 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Entity
  * @ORM\Table(name="c_rmq_log_consumer")
  */
-class Log extends \Kdyby\Doctrine\Entities\BaseEntity {
+class Log {
+
+    use \Kdyby\Doctrine\Entities\Attributes\Identifier;
+    use \Kdyby\Doctrine\Entities\MagicAccessors;
 
     const STATUS_OK = 1;
     const STATUS_WARNING = 2;
