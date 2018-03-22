@@ -14,7 +14,6 @@ use Nette\SmartObject;
  */
 class Log
 {
-    use SmartObject;
     use \Kdyby\Doctrine\Entities\Attributes\Identifier;
     use \Kdyby\Doctrine\Entities\MagicAccessors;
 
