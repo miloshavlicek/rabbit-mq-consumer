@@ -3,21 +3,23 @@
 namespace Miloshavlicek\RabbitMqConsumer;
 
 use Miloshavlicek\RabbitMqConsumer\Model\Log as RmqLogConsumer;
-use Nette\Object as NObject;
 
 /**
  * Service Log
  */
-class Log extends NObject {
+class Log
+{
 
     /** @var \Kdyby\Doctrine\EntityManager */
     private $em;
 
-    public function __construct(\Kdyby\Doctrine\EntityManager $em) {
+    public function __construct(\Kdyby\Doctrine\EntityManager $em)
+    {
         $this->em = $em;
     }
 
-    public function addMessage($message, $status = NULL, $consumerTitle = NULL) {
+    public function addMessage(string $message, $status = NULL, ?string $consumerTitle = NULL)
+    {
         $this->printMessage($message, $status);
 
         try {
@@ -27,7 +29,13 @@ class Log extends NObject {
         }
     }
 
-    private function logDb($message, $status = NULL, $consumerTitle = NULL) {
+    private function printMessage(string $message, $status = NULL)
+    {
+        echo date('Y-m-d H:i:s') . '|' . ($status ? $status . ': ' : '') . $message . "\r\n";
+    }
+
+    private function logDb(string $message, $status = NULL, ?string $consumerTitle = NULL)
+    {
         $log = new RmqLogConsumer;
         $log->consumerTitle = $consumerTitle;
         $log->message = $message;
@@ -35,10 +43,6 @@ class Log extends NObject {
 
         $this->em->persist($log);
         $this->em->flush();
-    }
-
-    private function printMessage($message, $status = NULL) {
-        echo date('Y-m-d H:i:s') . '|' . ($status ? $status . ': ' : '') . $message . "\r\n";
     }
 
 }

@@ -5,13 +5,13 @@ namespace Miloshavlicek\RabbitMqConsumer;
 use Kdyby\RabbitMq\IConsumer;
 use Kdyby\RabbitMq\TerminateException;
 use Miloshavlicek\RabbitMqConsumer\Model\Log as RmqLogConsumer;
-use Nette\Object as NObject;
 use PhpAmqpLib\Message\AMQPMessage;
 
 /**
  * Abstract consumer for RabbitMQ
  */
-abstract class Consumer extends NObject {
+abstract class Consumer
+{
 
     /** @var string */
     protected $consumerTitle;
@@ -26,33 +26,12 @@ abstract class Consumer extends NObject {
     protected $oneRunOnly = TRUE;
 
     /**
-     * 
-     * @param string $message
-     * @param integer $status
-     */
-    public function addMessage($message, $status = NULL) {
-        try {
-            $this->log->addMessage($message, $status, $this->consumerTitle);
-        } catch (\Exception $e) {
-            // Unable to log message
-            // TODO: log to another log?
-        }
-    }
-
-    /**
-     * Log info that the consumer has been started
-     * Called at the end of $this->__construct() implementation
-     */
-    protected function init() {
-        $this->addMessage(sprintf('Consumer "%s" started.', $this->consumerTitle), RmqLogConsumer::STATUS_OK);
-    }
-
-    /**
      * Consumer callback
-     * 
+     *
      * @param AMQPMessage $msg
      */
-    public function process(AMQPMessage $msg) {
+    public function process(AMQPMessage $msg)
+    {
         if (!$this->em->isOpen()) {
             // Entity manager is not open, so terminate
             throw new TerminateException;
@@ -81,10 +60,11 @@ abstract class Consumer extends NObject {
     }
 
     /**
-     * 
+     *
      * @param AMQPMessage $msg
      */
-    private function processMessage(AMQPMessage $msg) {
+    private function processMessage(AMQPMessage $msg)
+    {
         try {
             // Try to unserialize the message body
             $body = unserialize($msg->body);
@@ -111,19 +91,12 @@ abstract class Consumer extends NObject {
     }
 
     /**
-     * 
-     * @param mixed $body
-     */
-    protected function processBody($body) {
-        throw new \Exception('Process body method is not implemented!');
-    }
-
-    /**
-     * 
+     *
      * @param integer $flag IConsumer constant
      * @return integer IConsumer constant
      */
-    private function processEnd($flag) {
+    private function processEnd($flag)
+    {
         $status = RmqLogConsumer::STATUS_OK;
 
         try {
@@ -143,15 +116,49 @@ abstract class Consumer extends NObject {
     }
 
     /**
-     * 
+     *
      * @param integer $flag
      * @param integer $status
      * @param string|NULL $message
      * @return boolean
      */
-    private function processTermination($flag, $status, $message = NULL) {
+    private function processTermination($flag, $status, $message = NULL)
+    {
         $this->addMessage(sprintf('Process terminated%s', !empty($message) ? (': ' . $message) : '.'), $status);
-        return (bool) $flag;
+        return (bool)$flag;
+    }
+
+    /**
+     *
+     * @param mixed $body
+     */
+    protected function processBody($body)
+    {
+        throw new \Exception('Process body method is not implemented!');
+    }
+
+    /**
+     * Log info that the consumer has been started
+     * Called at the end of $this->__construct() implementation
+     */
+    protected function init()
+    {
+        $this->addMessage(sprintf('Consumer "%s" started.', $this->consumerTitle), RmqLogConsumer::STATUS_OK);
+    }
+
+    /**
+     *
+     * @param string $message
+     * @param integer $status
+     */
+    public function addMessage($message, $status = NULL)
+    {
+        try {
+            $this->log->addMessage($message, $status, $this->consumerTitle);
+        } catch (\Exception $e) {
+            // Unable to log message
+            // TODO: log to another log?
+        }
     }
 
 }
