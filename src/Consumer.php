@@ -2,10 +2,13 @@
 
 namespace Miloshavlicek\RabbitMqConsumer;
 
+use Exception;
+use Kdyby\Doctrine\EntityManager;
 use Kdyby\RabbitMq\IConsumer;
 use Kdyby\RabbitMq\TerminateException;
 use Miloshavlicek\RabbitMqConsumer\Model\Log as RmqLogConsumer;
 use PhpAmqpLib\Message\AMQPMessage;
+use UDANAX\Service\Uni\ConsumerLog;
 
 /**
  * Abstract consumer for RabbitMQ
@@ -16,21 +19,22 @@ abstract class Consumer
     /** @var string */
     protected $consumerTitle;
 
-    /** @var \Kdyby\Doctrine\EntityManager */
+    /** @var EntityManager */
     protected $em;
 
-    /** @var \UDANAX\Service\Uni\ConsumerLog */
+    /** @var ConsumerLog */
     protected $log;
 
     /** @var boolean */
-    protected $oneRunOnly = TRUE;
+    protected $oneRunOnly = true;
 
     /**
      * Consumer callback
      *
      * @param AMQPMessage $msg
+     * @return int
      */
-    public function process(AMQPMessage $msg)
+    public function process(AMQPMessage $msg): int
     {
         if (!$this->em->isOpen()) {
             // Entity manager is not open, so terminate
@@ -39,7 +43,7 @@ abstract class Consumer
 
         try {
             $this->em->clear();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Cannot clear entity manager, so terminate
             throw new TerminateException;
         }
@@ -47,7 +51,7 @@ abstract class Consumer
         try {
             // Try to process the message
             $flag = $this->processMessage($msg);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Stop consuming, because some unhandeled exception during message process occured.
             throw new TerminateException;
         }
@@ -62,13 +66,14 @@ abstract class Consumer
     /**
      *
      * @param AMQPMessage $msg
+     * @return int
      */
-    private function processMessage(AMQPMessage $msg)
+    private function processMessage(AMQPMessage $msg): int
     {
         try {
             // Try to unserialize the message body
             $body = unserialize($msg->body);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Error during processing of the message $msg
             $this->addMessage($e->getMessage(), RmqLogConsumer::STATUS_FATAL_ERROR);
 
@@ -80,70 +85,15 @@ abstract class Consumer
         try {
             // Try to process body of the message with the concreate implementation.
             $this->processBody($body);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Error during processing of the message $msg
             $this->addMessage($e->getMessage(), RmqLogConsumer::STATUS_FATAL_ERROR);
             return $this->processEnd(IConsumer::MSG_REJECT_REQUEUE);
         }
 
         // Everything is OK
-        return $this->processEnd(IConsumer::MSG_ACK);
-    }
-
-    /**
-     *
-     * @param integer $flag IConsumer constant
-     * @return integer IConsumer constant
-     */
-    private function processEnd($flag)
-    {
-        $status = RmqLogConsumer::STATUS_OK;
-
-        try {
-            $this->em->clear();
-        } catch (\Exception $e) {
-            $status = RmqLogConsumer::STATUS_ERROR;
-            // Fatal error during em->clear();
-        }
-
-        try {
-            return $this->processTermination($flag, $status);
-        } catch (\Exception $e) {
-            // Fatal error during termination
-        }
-
-        return $flag;
-    }
-
-    /**
-     *
-     * @param integer $flag
-     * @param integer $status
-     * @param string|NULL $message
-     * @return boolean
-     */
-    private function processTermination($flag, $status, $message = NULL)
-    {
-        $this->addMessage(sprintf('Process terminated%s', !empty($message) ? (': ' . $message) : '.'), $status);
-        return (bool)$flag;
-    }
-
-    /**
-     *
-     * @param mixed $body
-     */
-    protected function processBody($body)
-    {
-        throw new \Exception('Process body method is not implemented!');
-    }
-
-    /**
-     * Log info that the consumer has been started
-     * Called at the end of $this->__construct() implementation
-     */
-    protected function init()
-    {
-        $this->addMessage(sprintf('Consumer "%s" started.', $this->consumerTitle), RmqLogConsumer::STATUS_OK);
+        $this->processEnd();
+        return IConsumer::MSG_ACK;
     }
 
     /**
@@ -151,14 +101,57 @@ abstract class Consumer
      * @param string $message
      * @param integer $status
      */
-    public function addMessage($message, $status = NULL)
+    public function addMessage(string $message, ?int $status = null): void
     {
         try {
             $this->log->addMessage($message, $status, $this->consumerTitle);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Unable to log message
             // TODO: log to another log?
         }
+    }
+
+    private function processEnd(): void
+    {
+        $status = RmqLogConsumer::STATUS_OK;
+
+        try {
+            $this->em->clear();
+        } catch (Exception $e) {
+            $status = RmqLogConsumer::STATUS_ERROR;
+            // Fatal error during em->clear();
+        }
+
+        try {
+            $this->processTermination($status);
+        } catch (Exception $e) {
+            // Fatal error during termination
+        }
+    }
+
+    /**
+     *
+     * @param integer $status
+     * @param string|NULL $message
+     */
+    private function processTermination(int $status, ?string $message = null): void
+    {
+        $this->addMessage(sprintf('Process terminated%s', !empty($message) ? (': ' . $message) : '.'), $status);
+    }
+
+    /**
+     *
+     * @param array $body
+     */
+    abstract function processBody(array $body): void;
+
+    /**
+     * Log info that the consumer has been started
+     * Called at the end of $this->__construct() implementation
+     */
+    protected function init(): void
+    {
+        $this->addMessage(sprintf('Consumer "%s" started.', $this->consumerTitle), RmqLogConsumer::STATUS_OK);
     }
 
 }

@@ -2,6 +2,7 @@
 
 namespace Miloshavlicek\RabbitMqConsumer;
 
+use Kdyby\Doctrine\EntityManager;
 use Miloshavlicek\RabbitMqConsumer\Model\Log as RmqLogConsumer;
 
 /**
@@ -10,15 +11,20 @@ use Miloshavlicek\RabbitMqConsumer\Model\Log as RmqLogConsumer;
 class Log
 {
 
-    /** @var \Kdyby\Doctrine\EntityManager */
+    /** @var EntityManager */
     private $em;
 
-    public function __construct(\Kdyby\Doctrine\EntityManager $em)
+    public function __construct(EntityManager $em)
     {
         $this->em = $em;
     }
 
-    public function addMessage(string $message, $status = NULL, ?string $consumerTitle = NULL)
+    /**
+     * @param string $message
+     * @param int|null $status
+     * @param null|string $consumerTitle
+     */
+    public function addMessage(string $message, ?int $status = null, ?string $consumerTitle = null): void
     {
         $this->printMessage($message, $status);
 
@@ -29,12 +35,21 @@ class Log
         }
     }
 
-    private function printMessage(string $message, $status = NULL)
+    /**
+     * @param string $message
+     * @param int|null $status
+     */
+    private function printMessage(string $message, ?int $status = null): void
     {
         echo date('Y-m-d H:i:s') . '|' . ($status ? $status . ': ' : '') . $message . "\r\n";
     }
 
-    private function logDb(string $message, $status = NULL, ?string $consumerTitle = NULL)
+    /**
+     * @param string $message
+     * @param int|null $status
+     * @param null|string $consumerTitle
+     */
+    private function logDb(string $message, ?int $status = null, ?string $consumerTitle = null): void
     {
         $log = new RmqLogConsumer;
         $log->consumerTitle = $consumerTitle;
