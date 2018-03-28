@@ -143,7 +143,7 @@ abstract class Consumer
      *
      * @param array $body
      */
-    abstract function processBody(array $body): void;
+    abstract protected function processBody(array $body): void;
 
     /**
      * Log info that the consumer has been started
