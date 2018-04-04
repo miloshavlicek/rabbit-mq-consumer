@@ -79,7 +79,8 @@ abstract class Consumer
 
             // Reject message to requeue
             // TODO: store corrupted message elsewhere
-            return $this->processEnd(IConsumer::MSG_REJECT_REQUEUE);
+            $this->processEnd();
+            return IConsumer::MSG_REJECT_REQUEUE;
         }
 
         try {
@@ -88,7 +89,8 @@ abstract class Consumer
         } catch (Exception $e) {
             // Error during processing of the message $msg
             $this->addMessage($e->getMessage(), RmqLogConsumer::STATUS_FATAL_ERROR);
-            return $this->processEnd(IConsumer::MSG_REJECT_REQUEUE);
+            $this->processEnd();
+            return IConsumer::MSG_REJECT_REQUEUE;
         }
 
         // Everything is OK
